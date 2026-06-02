@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+
+# Homebrew's installer updates shell startup files, but chezmoi scripts run in
+# this current non-interactive process and need brew available immediately.
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+if ! command -v brew >/dev/null 2>&1; then
+  echo "Homebrew is not available; cannot install packages." >&2
+  exit 1
+fi
+
+# This script is rendered from .chezmoidata/packages.yaml. When that package
+# list changes, the rendered script changes, so chezmoi runs it again.
+brew bundle --file=/dev/stdin <<EOF
+{{ range .packages.brews -}}
+brew {{ . | quote }}
+{{ end -}}
+{{ range .packages.casks -}}
+cask {{ . | quote }}
+{{ end -}}
+EOF
